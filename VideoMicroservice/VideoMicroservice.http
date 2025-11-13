@@ -1,0 +1,6 @@
+@VideoMicroservice_HostAddress = http://localhost:5008
+
+GET {{VideoMicroservice_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
