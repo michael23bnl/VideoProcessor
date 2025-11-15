@@ -1,0 +1,6 @@
+@FileProcessingMicroservice_HostAddress = http://localhost:5252
+
+GET {{FileProcessingMicroservice_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
