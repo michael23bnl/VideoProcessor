@@ -1,44 +1,72 @@
 ﻿services:
   postgres:
-    container_name: postgres
     image: postgres:latest
+    container_name: postgres
     environment:
-      POSTGRES_DB: "db"
-      POSTGRES_USER: "postgres"
-      POSTGRES_PASSWORD: "123"
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5    
     volumes:
       - postgres-data:/var/lib/postgresql
     ports:
       - "5432:5432"
-    networks:
-      - app-network
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
 
-  # api:
-  #  build:
-  #    context: .
-  #    dockerfile: Dockerfile
-  #  container_name: hockey-platform-api
-  #  environment:
-  #    - ASPNETCORE_ENVIRONMENT=Development
-  #    - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=db;Username=postgres;Password=123
-  #  ports:
-  #    - "8080:8080"
-  #    - "8081:8081"
-  #  depends_on:
-  #    postgres:
-  #      condition: service_healthy
-  #  networks:
-  #    - app-network
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - minio-data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: server /data --console-address ":9001"
+
+  file-processing:
+    build:
+      context: ./FileProcessingMicroservice
+    container_name: file-processing-microservice
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+      Minio__Endpoint: http://minio:9000
+      Minio__AccessKey: ${MINIO_ACCESS_KEY}
+      Minio__SecretKey: ${MINIO_SECRET_KEY}
+    depends_on:
+      minio:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+
+  video-data:
+    build:
+      context: ./VideoDataMicroservice
+    container_name: video-data-microservice
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+      ConnectionStrings__DefaultConnection: >
+        Host=${DB_HOST};
+        Port=${DB_PORT};
+        Database=${POSTGRES_DB};
+        Username=${POSTGRES_USER};
+        Password=${POSTGRES_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8081:80"
 
 volumes:
   postgres-data:
-
-networks:
-  app-network:
-    driver: bridge
+  minio-data:
