@@ -8,7 +8,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.env = .env
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileProcessingMicroservice", "FileProcessingMicroservice\FileProcessingMicroservice.csproj", "{0E665EE1-D0A0-4089-941E-CBBA109C9FCB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VideoProcessingMicroservice", "VideoProcessingMicroservice\VideoProcessingMicroservice.csproj", "{0E665EE1-D0A0-4089-941E-CBBA109C9FCB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared", "Shared\Shared.csproj", "{D87580E9-033D-481C-BFF2-E6E7988389B2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -24,5 +26,9 @@ Global
 		{0E665EE1-D0A0-4089-941E-CBBA109C9FCB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0E665EE1-D0A0-4089-941E-CBBA109C9FCB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0E665EE1-D0A0-4089-941E-CBBA109C9FCB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D87580E9-033D-481C-BFF2-E6E7988389B2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D87580E9-033D-481C-BFF2-E6E7988389B2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D87580E9-033D-481C-BFF2-E6E7988389B2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D87580E9-033D-481C-BFF2-E6E7988389B2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

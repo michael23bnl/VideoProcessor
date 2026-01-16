@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using VideoDataMicroservice.VideoDataMicroservice.Application.Services;
-using VideoDataMicroservice.VideoDataMicroservice.Core.Abstractions;
-using VideoDataMicroservice.VideoDataMicroservice.Persistence;
-using VideoDataMicroservice.VideoDataMicroservice.Persistence.Repositories;
+using VideoDataMicroservice.Application.Services;
+using VideoDataMicroservice.Core.Abstractions;
+using VideoDataMicroservice.Infrastructure;
+using VideoDataMicroservice.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
