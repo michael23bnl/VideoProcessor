@@ -130,7 +130,6 @@ public class S3VideoStorage : IVideoStorage
             Expires = DateTime.UtcNow.AddMinutes(30)
         };
 
-        //return await _s3Client.GetPreSignedURLAsync(request);
         var url = await _s3Client.GetPreSignedURLAsync(request);
         
         url = url.Replace("https://", "http://");
@@ -190,7 +189,6 @@ public class S3VideoStorage : IVideoStorage
                 totalBytes += bytesRead;
             }
 
-            // Завершение multipart upload
             await _s3Client.CompleteMultipartUploadAsync(new CompleteMultipartUploadRequest
             {
                 BucketName = _bucketName,

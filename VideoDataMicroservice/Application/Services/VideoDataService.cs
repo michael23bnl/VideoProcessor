@@ -70,7 +70,7 @@ public class VideoDataService : IVideoDataService
         return Result<List<UploadedVideoData>>.Success(uploadedVideoData);
     }
 
-    public async Task<Result<Guid>> UpdateVideoDataAsync(Guid id, string title, string description, 
+    public async Task<Result<Guid>> UpdateVideoDataAsync(Guid id, string title, string? description, 
         string thumbnailUrl, CancellationToken cancellationToken)
     {
         var rowsUpdated = await _videoDataRepository.UpdateAsync(id, title, description, 

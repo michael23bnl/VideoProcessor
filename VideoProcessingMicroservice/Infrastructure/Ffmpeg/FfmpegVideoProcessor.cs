@@ -22,7 +22,7 @@ public class FfmpegVideoProcessor : IVideoProcessor
             await input.CopyToAsync(fs, cancellationToken);
 
         var args = $@"
-                -hide_banner -y
+                -hide_banner -y 
                 -i ""{inputPath}""
                 -filter_complex ""[0:v]split=3[v0][v1][v2];
                 [v0]scale=w=-2:h=360[v0out];
@@ -69,7 +69,6 @@ public class FfmpegVideoProcessor : IVideoProcessor
         if (!File.Exists(_ffmpegPath))
             throw new FileNotFoundException("ffmpeg.exe не найден", _ffmpegPath);
 
-        // аргументы ffmpeg для конвертации через pipe
         var args = $@"
             -y 
             -i pipe:0 
@@ -94,8 +93,7 @@ public class FfmpegVideoProcessor : IVideoProcessor
 
         using var process = Process.Start(startInfo);
 
-        // читаем stderr, чтобы ffmpeg не зависал
-        _ = process.StandardError.ReadToEndAsync(cancellationToken);
+        var stderr = process.StandardError.ReadToEndAsync(cancellationToken);
 
         // копируем поток видео в stdin
         var inputTask = Task.Run(async () =>
@@ -107,10 +105,8 @@ public class FfmpegVideoProcessor : IVideoProcessor
         // копируем stdout ffmpeg в выходной поток
         var outputTask = process.StandardOutput.BaseStream.CopyToAsync(output, cancellationToken);
 
-        // ждём завершения обоих потоков
         await Task.WhenAll(inputTask, outputTask);
 
-        // ждём завершения процесса
         await process.WaitForExitAsync(cancellationToken);
     }
 }

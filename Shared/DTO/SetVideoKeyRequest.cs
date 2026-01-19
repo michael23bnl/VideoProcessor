@@ -1,3 +1,3 @@
 namespace Shared.DTO;
 
-public record SetVideoKeyRequest(string Key, Guid Id);
+public record SetVideoKeyRequest(Guid Id, string Key);

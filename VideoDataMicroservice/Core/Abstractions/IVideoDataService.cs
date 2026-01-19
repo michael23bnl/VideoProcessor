@@ -12,7 +12,7 @@ public interface IVideoDataService
     Task<Result<VideoData>> GetVideoDataAsync(Guid id, CancellationToken cancellationToken);
     Task<Result<List<VideoData>>> GetAllVideoDataAsync(CancellationToken cancellationToken);
     Task<Result<List<UploadedVideoData>>> GetUploadedVideoDataAsync(CancellationToken cancellationToken);
-    Task<Result<Guid>> UpdateVideoDataAsync(Guid id, string title, string description, 
+    Task<Result<Guid>> UpdateVideoDataAsync(Guid id, string title, string? description, 
         string thumbnailUrl, CancellationToken cancellationToken);
     Task<Result<Guid>> UpdateVideoStatusAsync(Guid id, VideoStatus status, CancellationToken cancellationToken);
     Task<Result<Guid>> SetVideoKeyAsync(Guid id, string key, CancellationToken cancellationToken);

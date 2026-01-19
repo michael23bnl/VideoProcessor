@@ -9,7 +9,6 @@ namespace VideoProcessingMicroservice.Infrastructure.RabbitMq;
 
 public class RabbitMqProducer : IMessageProducer
 {
-
     private readonly IChannel _channel;
 
     private RabbitMqProducer(IChannel channel)
@@ -35,11 +34,6 @@ public class RabbitMqProducer : IMessageProducer
             exclusive: false, 
             cancellationToken: cancellationToken);
         
-        /*await channel.BasicQosAsync(
-            prefetchSize: 0, 
-            prefetchCount: 1, 
-            global: false, 
-            cancellationToken: cancellationToken);*/
         var messageJson = JsonSerializer.Serialize(message);
         var body = Encoding.UTF8.GetBytes(messageJson);
         

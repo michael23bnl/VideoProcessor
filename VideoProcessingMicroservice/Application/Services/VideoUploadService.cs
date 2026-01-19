@@ -29,7 +29,7 @@ public class VideoUploadService : IVideoUploadService
         await _videoMetadataClient.CreateAsync(new CreateVideoMetadataRequest
         (
             videoId,
-            request.FileName,
+            Path.GetFileNameWithoutExtension(request.FileName),
             VideoStatus.Pending
         ), cancellationToken);
         

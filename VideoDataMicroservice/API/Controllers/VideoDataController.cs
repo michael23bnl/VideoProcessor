@@ -24,7 +24,7 @@ public class VideoDataController : ControllerBase
             request.Id,
                 request.FileName, 
                 null, 
-                request.Status,
+                request.InitialStatus,
                 null, 
                 null, 
                 cancellationToken);
@@ -67,7 +67,7 @@ public class VideoDataController : ControllerBase
     }
 
     [HttpPut("update")]
-    public async Task<ActionResult<Guid>> UpdateVideoData(Guid id, string title, string description,
+    public async Task<ActionResult<Guid>> UpdateVideoData(Guid id, string title, string? description,
         string thumbnailUrl, CancellationToken cancellationToken)
     {
         var response = await _videoDataService

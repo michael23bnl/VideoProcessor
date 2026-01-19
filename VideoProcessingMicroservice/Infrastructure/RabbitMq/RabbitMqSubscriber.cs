@@ -38,16 +38,13 @@ public class RabbitMqSubscriber : IMessageSubscriber
             var body = ea.Body.ToArray();
             var messageJson = Encoding.UTF8.GetString(body);
             var message = JsonSerializer.Deserialize<VideoUploadedEvent>(messageJson);
-            //var message = Encoding.UTF8.GetString(body);
             
             using var scope = _scopeFactory.CreateScope();
             var handler = scope.ServiceProvider.GetRequiredService<IVideoUploadedHandler>();
 
             await handler.HandleAsync(message.Key, message.Id, cancellationToken);
-            
             await channel.BasicAckAsync(
-                deliveryTag: 
-                ea.DeliveryTag, 
+                deliveryTag: ea.DeliveryTag, 
                 multiple: false,
                 cancellationToken: cancellationToken);
         };

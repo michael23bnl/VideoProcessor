@@ -20,6 +20,17 @@ builder.Services.AddDbContext<VideoMicroserviceDbContext>(options =>
 builder.Services.AddScoped<IVideoDataService, VideoDataService>();
 builder.Services.AddScoped<IVideoDataRepository, VideoDataRepository>();
 
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy
+            .AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -32,5 +43,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.MapControllers();
+
+app.UseCors();
 
 app.Run();

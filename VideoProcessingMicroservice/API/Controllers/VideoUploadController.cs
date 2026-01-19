@@ -6,11 +6,11 @@ namespace VideoProcessingMicroservice.API.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class S3FileController : ControllerBase
+public class VideoUploadController : ControllerBase
 {
     private readonly IVideoUploadService _videoUploadService;
 
-    public S3FileController(IVideoUploadService videoUploadService)
+    public VideoUploadController(IVideoUploadService videoUploadService)
     {
         _videoUploadService = videoUploadService;
     }

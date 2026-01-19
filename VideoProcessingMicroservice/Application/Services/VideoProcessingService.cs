@@ -48,8 +48,8 @@ public class VideoProcessingService : IVideoProcessingService
             s3Key = $"processed/{videoId}/master.m3u8";
             
             var setKeyTask = _videoMetadataClient.SetKeyAsync(new SetVideoKeyRequest(
-                s3Key,
-                id), cancellationToken);
+                id,
+                s3Key), cancellationToken);
             var updateStatusTask = _videoMetadataClient.UpdateStatusAsync(new UpdateVideoStatusRequest(
                 id,
                 VideoStatus.Ready), cancellationToken);
@@ -86,7 +86,7 @@ public class VideoProcessingService : IVideoProcessingService
             { "144p", "256x144" }
         };
 
-        var originalName = Path.GetFileNameWithoutExtension(key);
+        var videoId = Path.GetFileNameWithoutExtension(key);
         var extension = Path.GetExtension(key);
 
         foreach (var res in resolutions)
@@ -99,11 +99,20 @@ public class VideoProcessingService : IVideoProcessingService
 
             // загружаем результат обратно в S3
             outputStream.Position = 0;
-            var processedFileName = $"{originalName}_{res.Key}{extension}";
-            await _videoStorage.UploadAsync(outputStream, processedFileName, cancellationToken);
-
+            var s3Key = $"converted/{videoId}/{res.Key}{extension}";
+            
+            await _videoStorage.UploadAsync(outputStream, s3Key, cancellationToken);
             await outputStream.DisposeAsync();
+            
             inputStream.Position = 0; // сброс для следующей конверсии
         }
+        var setKeyTask = _videoMetadataClient.SetKeyAsync(new SetVideoKeyRequest(
+            id,
+            $"converted/{videoId}"), cancellationToken);
+        var updateStatusTask = _videoMetadataClient.UpdateStatusAsync(new UpdateVideoStatusRequest(
+            id,
+            VideoStatus.Ready), cancellationToken);
+
+        await Task.WhenAll(setKeyTask, updateStatusTask);
     }
 }

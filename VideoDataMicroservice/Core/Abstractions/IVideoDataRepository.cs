@@ -12,7 +12,7 @@ public interface IVideoDataRepository
     //Task<List<VideoData>> GetAllAsync(CancellationToken cancellationToken);
     Task<List<VideoData>> GetAllFilteredAsync(Expression<Func<VideoData, bool>>? filter = null, 
         CancellationToken cancellationToken = default);
-    Task<int> UpdateAsync(Guid id, string title, string description,
+    Task<int> UpdateAsync(Guid id, string title, string? description,
         string thumbnailUrl, CancellationToken cancellationToken);
     Task<int> UpdateStatusAsync(Guid id, VideoStatus status,
         CancellationToken cancellationToken);

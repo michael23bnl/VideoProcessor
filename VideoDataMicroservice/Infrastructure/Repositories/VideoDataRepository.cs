@@ -61,7 +61,7 @@ public class VideoDataRepository : IVideoDataRepository
         return await query.ToListAsync(cancellationToken);
     }
 
-    public async Task<int> UpdateAsync(Guid id, string title, string description,
+    public async Task<int> UpdateAsync(Guid id, string title, string? description,
         string thumbnailUrl, CancellationToken cancellationToken)
     {
         var rowsUpdated = await _dbContext.VideoData
