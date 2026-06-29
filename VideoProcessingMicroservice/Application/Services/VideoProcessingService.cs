@@ -1,6 +1,8 @@
+using System.Diagnostics;
 using Shared.DTO;
 using Shared.Enums;
 using VideoProcessingMicroservice.Application.Abstractions;
+using VideoProcessingMicroservice.Core;
 using VideoProcessingMicroservice.Core.Abstractions;
 
 namespace VideoProcessingMicroservice.Application.Services;
@@ -18,12 +20,28 @@ public class VideoProcessingService : IVideoProcessingService
         _videoProcessor = videoProcessor;
         _videoMetadataClient = videoMetadataClient;
     }
-
-    public async Task ProcessAsync(string key, Guid id, CancellationToken cancellationToken)
+    
+    public async Task ProcessVideoAsync(string key, Guid id, AdaptiveFormat format, CancellationToken cancellationToken)
     {
+        var formatConfig = format switch
+        {
+            AdaptiveFormat.Hls => new FormatConfig
+            {
+                OutputDirName = "hls",
+                ManifestFileName = "master.m3u8",
+                S3StorageDirName = "hls"
+            },
+            AdaptiveFormat.Dash => new FormatConfig
+            {
+                OutputDirName = "dash",
+                ManifestFileName = "manifest.mpd",
+                S3StorageDirName = "dash"
+            }
+        };       
+
         var tempRoot = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         var inputDir = Path.Combine(tempRoot, "input");
-        var outputDir = Path.Combine(tempRoot, "hls");
+        var outputDir = Path.Combine(tempRoot, formatConfig.OutputDirName);
 
         Directory.CreateDirectory(inputDir);
         Directory.CreateDirectory(outputDir);
@@ -33,7 +51,14 @@ public class VideoProcessingService : IVideoProcessingService
         try
         {
             await using var inputStream = await _videoStorage.DownloadAsync(key, cancellationToken);
-            await _videoProcessor.ProcessToHlsAsync(inputStream, inputPath, outputDir, cancellationToken);
+            
+            var sw = Stopwatch.StartNew();
+            
+            await _videoProcessor.ProcessAsync(inputStream, inputPath, outputDir, format, cancellationToken);
+            
+            sw.Stop();
+
+            Console.WriteLine($"Время обработки: {sw.Elapsed}");
 
             var videoId = Path.GetFileNameWithoutExtension(key);
             string s3Key;
@@ -41,14 +66,15 @@ public class VideoProcessingService : IVideoProcessingService
             foreach (var file in Directory.GetFiles(outputDir))
             {
                 await using var fs = File.OpenRead(file);
-                s3Key = $"processed/{videoId}/{Path.GetFileName(file)}";
+                s3Key = $"{formatConfig.S3StorageDirName}/{videoId}/{Path.GetFileName(file)}";
                 await _videoStorage.UploadAsync(fs, s3Key, cancellationToken);
             }
             
-            s3Key = $"processed/{videoId}/master.m3u8";
+            s3Key = $"{formatConfig.S3StorageDirName}/{videoId}/{formatConfig.ManifestFileName}";
             
-            var setKeyTask = _videoMetadataClient.SetKeyAsync(new SetVideoKeyRequest(
+            var setKeyTask = _videoMetadataClient.CreateManifestAsync(new CreateVideoManifestRequest(
                 id,
+                format == AdaptiveFormat.Hls ? "hls" : "dash",
                 s3Key), cancellationToken);
             var updateStatusTask = _videoMetadataClient.UpdateStatusAsync(new UpdateVideoStatusRequest(
                 id,
@@ -68,11 +94,9 @@ public class VideoProcessingService : IVideoProcessingService
                 Directory.Delete(tempRoot, true);
         }
     }
-
     
-    public async Task ConvertAsync(string key, Guid id, CancellationToken cancellationToken)
+    public async Task ConvertVideoAsync(string key, Guid id, CancellationToken cancellationToken)
     {
-        // загружаем исходное видео в поток
         await using var inputStream = await _videoStorage.DownloadAsync(key, cancellationToken);
         inputStream.Position = 0;
 
@@ -93,22 +117,21 @@ public class VideoProcessingService : IVideoProcessingService
         {
             var outputStream = new MemoryStream();
 
-            // создаем потоковую конвертацию через FFmpeg
             await _videoProcessor.ConvertToSpecificResolutionAsync(inputStream, outputStream, res.Value,
                 cancellationToken);
 
-            // загружаем результат обратно в S3
             outputStream.Position = 0;
-            var s3Key = $"converted/{videoId}/{res.Key}{extension}";
+            var s3Key = $"full/{videoId}/{res.Key}{extension}";
             
             await _videoStorage.UploadAsync(outputStream, s3Key, cancellationToken);
             await outputStream.DisposeAsync();
             
             inputStream.Position = 0; // сброс для следующей конверсии
         }
-        var setKeyTask = _videoMetadataClient.SetKeyAsync(new SetVideoKeyRequest(
+        var setKeyTask = _videoMetadataClient.CreateManifestAsync(new CreateVideoManifestRequest(
             id,
-            $"converted/{videoId}"), cancellationToken);
+            "None",
+            $"full/{videoId}"), cancellationToken);
         var updateStatusTask = _videoMetadataClient.UpdateStatusAsync(new UpdateVideoStatusRequest(
             id,
             VideoStatus.Ready), cancellationToken);

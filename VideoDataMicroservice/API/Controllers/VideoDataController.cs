@@ -17,17 +17,16 @@ public class VideoDataController : ControllerBase
         _videoDataService = videoDataService;
     }
 
-    [HttpPost("create")]
-    public async Task<ActionResult<Guid>> CreateVideoData(CreateVideoMetadataRequest request, CancellationToken cancellationToken)
+    [HttpPost("metadata")]
+    public async Task<ActionResult<Guid>> CreateVideoMetadata(CreateVideoMetadataRequest request, CancellationToken cancellationToken)
     {
-        var response = await _videoDataService.CreateVideoDataAsync(
-            request.Id,
-                request.FileName, 
-                null, 
-                request.InitialStatus,
-                null, 
-                null, 
-                cancellationToken);
+        var response = await _videoDataService.CreateVideoMetadataAsync(
+            request.Id, 
+            request.FileName, 
+            null, 
+            request.InitialStatus,
+            null, 
+            cancellationToken);
 
         if (response.IsFailure)
         {
@@ -36,9 +35,24 @@ public class VideoDataController : ControllerBase
 
         return Ok(response.Value);
     }
+    
+    [HttpPost("manifest")]
+    public async Task<ActionResult<Guid>> CreateVideoManifest(CreateVideoManifestRequest request, 
+        CancellationToken cancellationToken)
+    {
+        var response = await _videoDataService
+            .CreateVideoManifestAsync(request.Id, request.Protocol, request.S3Key, cancellationToken);
+        
+        if (response.IsFailure)
+        {
+            return NotFound(response.Error);
+        }
+        
+        return Ok(response.Value);
+    }
 
-    [HttpGet("get")]
-    public async Task<ActionResult<VideoData>> GetVideoData(Guid id, CancellationToken cancellationToken)
+    [HttpGet]
+    public async Task<ActionResult<VideoMetadata>> GetVideoData(Guid id, CancellationToken cancellationToken)
     {
         var response = await _videoDataService.GetVideoDataAsync(id, cancellationToken);
 
@@ -50,15 +64,15 @@ public class VideoDataController : ControllerBase
         return Ok(response.Value);
     }
 
-    [HttpGet("get/all")]
-    public async Task<ActionResult<List<VideoData>>> GetAllVideoData(CancellationToken cancellationToken)
-    {
-        var response = await _videoDataService.GetAllVideoDataAsync(cancellationToken);
+    // [HttpGet("get/all")]
+    // public async Task<ActionResult<List<VideoMetadata>>> GetAllVideoData(CancellationToken cancellationToken)
+    // {
+    //     var response = await _videoDataService.GetAllVideoDataAsync(cancellationToken);
+    //
+    //     return Ok(response.Value);
+    // }
 
-        return Ok(response.Value);
-    }
-
-    [HttpGet("get/uploads")]
+    [HttpGet("uploads")]
     public async Task<ActionResult<List<UploadedVideoData>>> GetUploadedVideoData(CancellationToken cancellationToken)
     {
         var response = await _videoDataService.GetUploadedVideoDataAsync(cancellationToken);
@@ -66,12 +80,12 @@ public class VideoDataController : ControllerBase
         return Ok(response.Value);
     }
 
-    [HttpPut("update")]
-    public async Task<ActionResult<Guid>> UpdateVideoData(Guid id, string title, string? description,
+    [HttpPut("metadata")]
+    public async Task<ActionResult<Guid>> UpdateVideoMetadata(Guid id, string title, string? description,
         string thumbnailUrl, CancellationToken cancellationToken)
     {
         var response = await _videoDataService
-            .UpdateVideoDataAsync(id, title, description, thumbnailUrl, cancellationToken);
+            .UpdateVideoMetadataAsync(id, title, description, thumbnailUrl, cancellationToken);
 
         if (response.IsFailure)
         {
@@ -81,7 +95,7 @@ public class VideoDataController : ControllerBase
         return Ok(response.Value);
     }
 
-    [HttpPut("update-status")]
+    [HttpPut("metadata/status")]
     public async Task<ActionResult<Guid>> UpdateVideoStatus(UpdateVideoStatusRequest request,
         CancellationToken cancellationToken)
     {
@@ -95,21 +109,7 @@ public class VideoDataController : ControllerBase
         return Ok(response.Value);
     }
 
-    [HttpPut("set-key")]
-    public async Task<ActionResult<Guid>> SetVideoKey(SetVideoKeyRequest request, 
-        CancellationToken cancellationToken)
-    {
-        var response = await _videoDataService.SetVideoKeyAsync(request.Id, request.Key, cancellationToken);
-        
-        if (response.IsFailure)
-        {
-            return NotFound(response.Error);
-        }
-        
-        return Ok(response.Value);
-    }
-
-    [HttpDelete("delete")]
+    [HttpDelete]
     public async Task<ActionResult<Guid>> DeleteVideoData(Guid id, CancellationToken cancellationToken)
     {
         var response = await _videoDataService.DeleteVideoDataAsync(id, cancellationToken);

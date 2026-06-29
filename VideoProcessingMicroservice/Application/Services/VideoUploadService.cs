@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Shared.DTO;
 using Shared.Enums;
 using VideoProcessingMicroservice.Application.Abstractions;
@@ -24,9 +25,15 @@ public class VideoUploadService : IVideoUploadService
     public async Task<InitiateResponse> InitiateUploadAsync(UploadRequest request, CancellationToken cancellationToken)
     {
         var videoId = Guid.NewGuid();
+        var sw = Stopwatch.StartNew();
+            
         var storageResponse = await _videoStorage.InitiateUploadAsync(request, videoId, cancellationToken);
+        sw.Stop();
+
+        Console.WriteLine($"Время загрузки: {sw.Elapsed}");
         
-        await _videoMetadataClient.CreateAsync(new CreateVideoMetadataRequest
+        
+        await _videoMetadataClient.CreateMetadataAsync(new CreateVideoMetadataRequest
         (
             videoId,
             Path.GetFileNameWithoutExtension(request.FileName),

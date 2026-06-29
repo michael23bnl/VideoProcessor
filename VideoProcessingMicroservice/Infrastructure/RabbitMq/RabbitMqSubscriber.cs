@@ -41,12 +41,12 @@ public class RabbitMqSubscriber : IMessageSubscriber
             
             using var scope = _scopeFactory.CreateScope();
             var handler = scope.ServiceProvider.GetRequiredService<IVideoUploadedHandler>();
-
-            await handler.HandleAsync(message.Key, message.Id, cancellationToken);
             await channel.BasicAckAsync(
                 deliveryTag: ea.DeliveryTag, 
                 multiple: false,
                 cancellationToken: cancellationToken);
+            await handler.HandleAsync(message.Key, message.Id, cancellationToken);
+            
         };
 
         await channel.BasicConsumeAsync(

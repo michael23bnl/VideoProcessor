@@ -1,3 +1,3 @@
 namespace VideoDataMicroservice.Application.DTO;
 
-public record UploadedVideoData(string Key, string Title, DateTime UploadedAt);
+public record UploadedVideoData(List<VideoManifestInfo> Manifests, string Title, DateTime UploadedAt);

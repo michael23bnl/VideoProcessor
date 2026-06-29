@@ -7,14 +7,15 @@ namespace VideoDataMicroservice.Core.Abstractions;
 
 public interface IVideoDataService
 {
-    Task<Result<Guid>> CreateVideoDataAsync(Guid id, string title, string? description, VideoStatus status,
-        string? key, string? thumbnailUrl, CancellationToken cancellationToken);
-    Task<Result<VideoData>> GetVideoDataAsync(Guid id, CancellationToken cancellationToken);
-    Task<Result<List<VideoData>>> GetAllVideoDataAsync(CancellationToken cancellationToken);
+    Task<Result<Guid>> CreateVideoMetadataAsync(Guid id, string title, string? description, VideoStatus status,
+        string? thumbnailUrl, CancellationToken cancellationToken);
+    Task<Result<Guid>> CreateVideoManifestAsync(Guid id, string protocol, string s3Key,
+        CancellationToken cancellationToken);
+    Task<Result<VideoMetadata>> GetVideoDataAsync(Guid id, CancellationToken cancellationToken);
+    //Task<Result<List<VideoMetadata>>> GetAllVideoDataAsync(CancellationToken cancellationToken);
     Task<Result<List<UploadedVideoData>>> GetUploadedVideoDataAsync(CancellationToken cancellationToken);
-    Task<Result<Guid>> UpdateVideoDataAsync(Guid id, string title, string? description, 
+    Task<Result<Guid>> UpdateVideoMetadataAsync(Guid id, string title, string? description, 
         string thumbnailUrl, CancellationToken cancellationToken);
     Task<Result<Guid>> UpdateVideoStatusAsync(Guid id, VideoStatus status, CancellationToken cancellationToken);
-    Task<Result<Guid>> SetVideoKeyAsync(Guid id, string key, CancellationToken cancellationToken);
     Task<Result<Guid>> DeleteVideoDataAsync(Guid id, CancellationToken cancellationToken);
 }

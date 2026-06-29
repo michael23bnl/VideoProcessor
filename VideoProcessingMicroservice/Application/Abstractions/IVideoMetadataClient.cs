@@ -5,7 +5,7 @@ namespace VideoProcessingMicroservice.Application.Abstractions;
 
 public interface IVideoMetadataClient
 {
-    Task CreateAsync(CreateVideoMetadataRequest request, CancellationToken cancellationToken);
+    Task CreateMetadataAsync(CreateVideoMetadataRequest request, CancellationToken cancellationToken);
     Task UpdateStatusAsync(UpdateVideoStatusRequest request, CancellationToken cancellationToken);
-    Task SetKeyAsync(SetVideoKeyRequest request, CancellationToken cancellationToken);
+    Task CreateManifestAsync(CreateVideoManifestRequest request, CancellationToken cancellationToken);
 }

@@ -11,11 +11,12 @@ public class VideoMicroserviceDbContext : DbContext
         
     }
     
-    public DbSet<VideoData> VideoData { get; set; }
+    public DbSet<VideoMetadata> VideoMetadata { get; set; }
+    public DbSet<VideoManifest> VideoManifest { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.ApplyConfiguration(new VideoDataConfiguration());
+        modelBuilder.ApplyConfiguration(new VideoMetadataConfiguration());
     
         base.OnModelCreating(modelBuilder);
     }

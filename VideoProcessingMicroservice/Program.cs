@@ -25,7 +25,8 @@ builder.Services.AddControllers();
 builder.Services.AddScoped<IVideoStorage, S3VideoStorage>();
 builder.Services.AddScoped<IVideoProcessingService, VideoProcessingService>();
 builder.Services.AddScoped<IVideoUploadedHandler, VideoUploadedHandler>();
-builder.Services.AddScoped<IVideoProcessor, FfmpegVideoProcessor>();
+//builder.Services.AddScoped<IVideoProcessor, FfmpegVideoProcessor>();
+builder.Services.AddScoped<IVideoProcessor, FfmpegVideoMultiProcessor>();
 builder.Services.AddScoped<IVideoUploadService, VideoUploadService>();
 
 builder.Services.AddSingleton<IMessageSubscriber, RabbitMqSubscriber>();
@@ -58,7 +59,7 @@ builder.Services.AddSingleton<IAmazonS3>(_ =>
 
 builder.Services.AddHttpClient<IVideoMetadataClient, VideoMetadataClient>(client =>
 {
-    client.BaseAddress = new Uri(builder.Configuration["VideoMetadataMicroserviceUrl"]);
+    client.BaseAddress = new Uri(builder.Configuration["VideoDataMicroserviceUrl"]);
 });
 
 builder.Services.AddCors(options =>

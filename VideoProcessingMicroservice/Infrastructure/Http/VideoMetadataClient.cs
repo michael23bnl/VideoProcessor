@@ -12,24 +12,24 @@ public class VideoMetadataClient : IVideoMetadataClient
         _httpClient = httpClient;
     }
 
-    public async Task CreateAsync(CreateVideoMetadataRequest request, CancellationToken cancellationToken)
+    public async Task CreateMetadataAsync(CreateVideoMetadataRequest request, CancellationToken cancellationToken)
     {
-        var response = await _httpClient.PostAsJsonAsync("/videodata/create", request, cancellationToken);
+        var response = await _httpClient.PostAsJsonAsync("/videodata/metadata", request, cancellationToken);
+        
+        response.EnsureSuccessStatusCode();
+    }
+    
+    public async Task CreateManifestAsync(CreateVideoManifestRequest request, CancellationToken cancellationToken)
+    {
+        var response = await _httpClient.PostAsJsonAsync("/videodata/manifest", request, cancellationToken);
         
         response.EnsureSuccessStatusCode();
     }
 
     public async Task UpdateStatusAsync(UpdateVideoStatusRequest request, CancellationToken cancellationToken)
     {
-        var response = await _httpClient.PutAsJsonAsync("/videodata/update-status", request, cancellationToken);
+        var response = await _httpClient.PutAsJsonAsync("/videodata/metadata/status", request, cancellationToken);
 
-        response.EnsureSuccessStatusCode();
-    }
-
-    public async Task SetKeyAsync(SetVideoKeyRequest request, CancellationToken cancellationToken)
-    {
-        var response = await _httpClient.PutAsJsonAsync("/videodata/set-key", request, cancellationToken);
-        
         response.EnsureSuccessStatusCode();
     }
 }

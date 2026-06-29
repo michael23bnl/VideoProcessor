@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using VideoDataMicroservice.Infrastructure;
@@ -11,9 +12,11 @@ using VideoDataMicroservice.Infrastructure;
 namespace VideoDataMicroservice.Infrastructure.Migrations
 {
     [DbContext(typeof(VideoMicroserviceDbContext))]
-    partial class VideoMicroserviceDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260505163607_Initial2")]
+    partial class Initial2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

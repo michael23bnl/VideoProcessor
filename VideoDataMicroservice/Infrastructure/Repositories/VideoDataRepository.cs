@@ -15,43 +15,56 @@ public class VideoDataRepository : IVideoDataRepository
         _dbContext = dbContext;
     }
 
-    public async Task<Guid> CreateAsync(Guid id, string title, string? description, VideoStatus status,
-        string? key, string? thumbnailUrl, CancellationToken cancellationToken)
+    public async Task<Guid> CreateMetadataAsync(Guid id, string title, string? description, VideoStatus status,
+        string? thumbnailUrl, CancellationToken cancellationToken)
     {
-        var videoData = new VideoData
+        var videoData = new VideoMetadata
         {
             Id = id,
             Title = title,
             Description = description,
             Status = status,
-            Key = key,
-            ThumbnailUrl = thumbnailUrl
+            ThumbnailUrl = thumbnailUrl,
         };
         
-        await _dbContext.VideoData.AddAsync(videoData, cancellationToken);
+        await _dbContext.VideoMetadata.AddAsync(videoData, cancellationToken);
         await _dbContext.SaveChangesAsync(cancellationToken);
         
         return videoData.Id;
     }
 
-    public async Task<VideoData?> GetAsync(Guid id, CancellationToken cancellationToken)
+    public async Task<Guid> CreateManifestAsync(Guid videoId, string protocol, string s3Key, CancellationToken cancellationToken)
     {
-        var videoData = await _dbContext.VideoData.FindAsync(id, cancellationToken);
+        var manifest = new VideoManifest
+        {
+            Id = Guid.NewGuid(),
+            VideoId = videoId,
+            Protocol = protocol,
+            S3Key = s3Key
+        };
+        
+        await _dbContext.VideoManifest.AddAsync(manifest, cancellationToken);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return manifest.Id;
+    }
+
+    public async Task<VideoMetadata?> GetAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var videoData = await _dbContext.VideoMetadata
+            .Include(vm => vm.Manifests)
+            .FirstOrDefaultAsync(vm => vm.Id == id, cancellationToken);
         
         return videoData;
     }
 
-    /*public async Task<List<VideoData>> GetAllAsync(CancellationToken cancellationToken)
-    {
-        var videoData = await _dbContext.VideoData.AsNoTracking().ToListAsync(cancellationToken);
-        
-        return videoData;
-    }*/
-
-    public async Task<List<VideoData>> GetAllFilteredAsync(Expression<Func<VideoData, bool>>? filter = null, 
+    public async Task<List<VideoMetadata>> GetAllFilteredAsync(Expression<Func<VideoMetadata, bool>>? filter = null, 
         CancellationToken cancellationToken = default)
     {
-        var query = _dbContext.VideoData.AsNoTracking().AsQueryable();
+        var query = _dbContext.VideoMetadata
+            .Include(vm => vm.Manifests)
+            .AsNoTracking()
+            .AsQueryable();
 
         if (filter is not null)
         {
@@ -64,12 +77,12 @@ public class VideoDataRepository : IVideoDataRepository
     public async Task<int> UpdateAsync(Guid id, string title, string? description,
         string thumbnailUrl, CancellationToken cancellationToken)
     {
-        var rowsUpdated = await _dbContext.VideoData
-            .Where(vd => vd.Id == id)
+        var rowsUpdated = await _dbContext.VideoMetadata
+            .Where(vm => vm.Id == id)
             .ExecuteUpdateAsync(s => s
-                .SetProperty(vd => vd.Title, title)
-                .SetProperty(vd => vd.Description, description)
-                .SetProperty(vd => vd.ThumbnailUrl, thumbnailUrl), cancellationToken);
+                .SetProperty(vm => vm.Title, title)
+                .SetProperty(vm => vm.Description, description)
+                .SetProperty(vm => vm.ThumbnailUrl, thumbnailUrl), cancellationToken);
         
         return rowsUpdated;
     }
@@ -77,21 +90,10 @@ public class VideoDataRepository : IVideoDataRepository
     public async Task<int> UpdateStatusAsync(Guid id, VideoStatus status,
         CancellationToken cancellationToken)
     {
-        var rawsUpdated = await _dbContext.VideoData
-            .Where(vd => vd.Id == id)
+        var rawsUpdated = await _dbContext.VideoMetadata
+            .Where(vm => vm.Id == id)
             .ExecuteUpdateAsync(s => s
-                .SetProperty(vd => vd.Status, status), cancellationToken);
-        
-        return rawsUpdated;
-    }
-
-    public async Task<int> SetKeyAsync(Guid id, string key,
-        CancellationToken cancellationToken)
-    {
-        var rawsUpdated = await _dbContext.VideoData
-            .Where(vd => vd.Id == id)
-            .ExecuteUpdateAsync(s => s
-                .SetProperty(vd => vd.Key, key), cancellationToken);
+                .SetProperty(vm => vm.Status, status), cancellationToken);
         
         return rawsUpdated;
     }
@@ -99,18 +101,18 @@ public class VideoDataRepository : IVideoDataRepository
     public async Task<int> SetUploadDateAsync(Guid id,
         CancellationToken cancellationToken)
     {
-        var rawsUpdated = await _dbContext.VideoData
-            .Where(vd => vd.Id == id)
+        var rawsUpdated = await _dbContext.VideoMetadata
+            .Where(vm => vm.Id == id)
             .ExecuteUpdateAsync(s => s
-                .SetProperty(vd => vd.UploadedAt, DateTime.UtcNow), cancellationToken);
+                .SetProperty(vm => vm.UploadedAt, DateTime.UtcNow), cancellationToken);
         
         return rawsUpdated;
     }
 
     public async Task<int> DeleteAsync(Guid id, CancellationToken cancellationToken)
     {
-        var rowsDeleted = await _dbContext.VideoData
-            .Where(vd => vd.Id == id)
+        var rowsDeleted = await _dbContext.VideoMetadata
+            .Where(vm => vm.Id == id)
             .ExecuteDeleteAsync(cancellationToken);
         
         return rowsDeleted;

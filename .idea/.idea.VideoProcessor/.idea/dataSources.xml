@@ -9,5 +9,13 @@
       <jdbc-url>jdbc:postgresql://localhost:5432/videodatadb?password=123&amp;user=postgres</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
+    <data-source source="LOCAL" name="videodatadb@localhost [2]" uuid="9fa87cd3-840d-4c3b-9efe-db3f1dd1eab7">
+      <driver-ref>postgresql</driver-ref>
+      <synchronize>true</synchronize>
+      <configured-by-url>true</configured-by-url>
+      <jdbc-driver>org.postgresql.Driver</jdbc-driver>
+      <jdbc-url>jdbc:postgresql://localhost:5432/videodatadb?password=123&amp;user=postgres</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
   </component>
 </project>

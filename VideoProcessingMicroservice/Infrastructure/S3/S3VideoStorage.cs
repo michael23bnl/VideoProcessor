@@ -7,17 +7,18 @@ namespace VideoProcessingMicroservice.Infrastructure.S3;
 
 public class S3VideoStorage : IVideoStorage
 {
-    private readonly string _bucketName;
     private const int ChunkSize = 10 * 1024 * 1024;
-
+    
+    private readonly string _originalBucketName;
+    private readonly string _processedBucketName;
     private readonly List<string> _allowedExtensions = [".mp4", ".webm", ".mov", ".avi", ".wmv", ".mkv", ".flv"];
-
     private readonly IAmazonS3 _s3Client;
 
     public S3VideoStorage(IAmazonS3 s3Client, IConfiguration config)
     {
         _s3Client = s3Client;
-        _bucketName = config["Minio:BucketName"];
+        _originalBucketName = config["Minio:Buckets:Original"];
+        _processedBucketName = config["Minio:Buckets:Processed"];
     }
 
     private async Task EnsureBucketExistsAsync(string bucketName, CancellationToken cancellationToken)
@@ -45,6 +46,51 @@ public class S3VideoStorage : IVideoStorage
         }
     }
 
+    // public async Task<InitiateResponse> InitiateUploadAsync(UploadRequest request, Guid videoId, CancellationToken cancellationToken)
+    // {
+    //     var extension = Path.GetExtension(request.FileName);
+    //     if (!_allowedExtensions.Contains(extension))
+    //     {
+    //         throw new Exception();
+    //     }
+    //     await EnsureBucketExistsAsync(_originalBucketName, cancellationToken);
+    //
+    //     var key = $"uploads/{videoId}_{request.FileName}";
+    //     var initRequest = new InitiateMultipartUploadRequest
+    //     {
+    //         BucketName = _originalBucketName,
+    //         Key = key
+    //     };
+    //
+    //     var initResponse = await _s3Client.InitiateMultipartUploadAsync(initRequest, cancellationToken);
+    //     var uploadId = initResponse.UploadId;
+    //     var totalParts = (int)Math.Ceiling(request.FileSize / (double)ChunkSize);
+    //     
+    //     if (totalParts <= 0) totalParts = 1;
+    //
+    //     var presignedUrls = new List<PresignedPartUrl>(totalParts);
+    //
+    //     for (int i = 1; i <= totalParts; i++)
+    //     {
+    //         var urlRequest = new GetPreSignedUrlRequest
+    //         {
+    //             BucketName = _originalBucketName,
+    //             Key = key,
+    //             Verb = HttpVerb.PUT,
+    //             Expires = DateTime.UtcNow.AddMinutes(10),
+    //             UploadId = initResponse.UploadId,
+    //             PartNumber = i
+    //         };
+    //
+    //         var url = await _s3Client.GetPreSignedURLAsync(urlRequest);
+    //
+    //         url = url.Replace("https://", "http://");
+    //         presignedUrls.Add(new PresignedPartUrl(i, url));
+    //     }
+    //
+    //     return new InitiateResponse(uploadId, key, presignedUrls, videoId);
+    // }
+    
     public async Task<InitiateResponse> InitiateUploadAsync(UploadRequest request, Guid videoId, CancellationToken cancellationToken)
     {
         var extension = Path.GetExtension(request.FileName);
@@ -52,44 +98,43 @@ public class S3VideoStorage : IVideoStorage
         {
             throw new Exception();
         }
-        await EnsureBucketExistsAsync(_bucketName, cancellationToken);
-
+        await EnsureBucketExistsAsync(_originalBucketName, cancellationToken);
+    
         var key = $"uploads/{videoId}_{request.FileName}";
         var initRequest = new InitiateMultipartUploadRequest
         {
-            BucketName = _bucketName,
+            BucketName = _originalBucketName,
             Key = key
         };
-
+    
         var initResponse = await _s3Client.InitiateMultipartUploadAsync(initRequest, cancellationToken);
         var uploadId = initResponse.UploadId;
         var totalParts = (int)Math.Ceiling(request.FileSize / (double)ChunkSize);
-        
+    
         if (totalParts <= 0) totalParts = 1;
-
-        var presignedUrls = new List<PresignedPartUrl>(totalParts);
-
-        // генерируем presigned URL для каждой части
-        for (int i = 1; i <= totalParts; i++)
-        {
-            var urlRequest = new GetPreSignedUrlRequest
+    
+        var presignedUrlsTasks = Enumerable.Range(1, totalParts)
+            .Select(async partNumber =>
             {
-                BucketName = _bucketName,
-                Key = key,
-                Verb = HttpVerb.PUT,
-                Expires = DateTime.UtcNow.AddMinutes(10),
-                UploadId = initResponse.UploadId,
-                PartNumber = i
-            };
-
-            var url = await _s3Client.GetPreSignedURLAsync(urlRequest);
-
-            url = url.Replace("https://", "http://");
-
-            presignedUrls.Add(new PresignedPartUrl(i, url));
-        }
-
-        return new InitiateResponse(uploadId, key, presignedUrls, videoId);
+                var urlRequest = new GetPreSignedUrlRequest
+                {
+                    BucketName = _originalBucketName,
+                    Key = key,
+                    Verb = HttpVerb.PUT,
+                    Expires = DateTime.UtcNow.AddMinutes(10),
+                    UploadId = uploadId,
+                    PartNumber = partNumber
+                };
+    
+                var url = await _s3Client.GetPreSignedURLAsync(urlRequest);
+                url = url.Replace("https://", "http://");
+                return new PresignedPartUrl(partNumber, url);
+            })
+            .ToList();
+    
+        var presignedUrls = await Task.WhenAll(presignedUrlsTasks);
+    
+        return new InitiateResponse(uploadId, key, presignedUrls.ToList(), videoId);
     }
 
     public async Task<UploadCompletedResponse> CompleteUploadAsync(CompleteUploadRequest request,
@@ -97,7 +142,7 @@ public class S3VideoStorage : IVideoStorage
     {
         var completeRequest = new CompleteMultipartUploadRequest
         {
-            BucketName = _bucketName,
+            BucketName = _originalBucketName,
             Key = request.Key,
             UploadId = request.UploadId,
             PartETags = request.Parts.Select(p => new PartETag(p.PartNumber, p.ETag)).ToList()
@@ -112,7 +157,7 @@ public class S3VideoStorage : IVideoStorage
     {
         var abortRequest = new AbortMultipartUploadRequest
         {
-            BucketName = _bucketName,
+            BucketName = _processedBucketName,
             Key = key,
             UploadId = uploadId
         };
@@ -124,7 +169,7 @@ public class S3VideoStorage : IVideoStorage
     {
         var request = new GetPreSignedUrlRequest
         {
-            BucketName = _bucketName,
+            BucketName = _processedBucketName,
             Key = key,
             Verb = HttpVerb.GET,
             Expires = DateTime.UtcNow.AddMinutes(30)
@@ -143,7 +188,7 @@ public class S3VideoStorage : IVideoStorage
 
         var request = new GetObjectRequest
         {
-            BucketName = _bucketName,
+            BucketName = _originalBucketName,
             Key = key
         };
 
@@ -158,7 +203,7 @@ public class S3VideoStorage : IVideoStorage
     {
         var initResponse = await _s3Client.InitiateMultipartUploadAsync(new InitiateMultipartUploadRequest
         {
-            BucketName = _bucketName,
+            BucketName = _processedBucketName,
             Key = key
         }, cancellationToken);
 
@@ -177,7 +222,7 @@ public class S3VideoStorage : IVideoStorage
                 using var memStream = new MemoryStream(buffer, 0, bytesRead);
                 var uploadPartResponse = await _s3Client.UploadPartAsync(new UploadPartRequest
                 {
-                    BucketName = _bucketName,
+                    BucketName = _processedBucketName,
                     Key = key,
                     UploadId = uploadId,
                     PartNumber = partNumber,
@@ -191,7 +236,7 @@ public class S3VideoStorage : IVideoStorage
 
             await _s3Client.CompleteMultipartUploadAsync(new CompleteMultipartUploadRequest
             {
-                BucketName = _bucketName,
+                BucketName = _processedBucketName,
                 Key = key,
                 UploadId = uploadId,
                 PartETags = partETags

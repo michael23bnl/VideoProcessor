@@ -1,86 +1,111 @@
 ﻿services:
-  postgres:
+  metadata-postgres:
+    container_name: video-metadata-postgres
     image: postgres:latest
-    container_name: postgres
+    ports:
+      - "5432:5432"
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5    
-    volumes:
-      - postgres-data:/var/lib/postgresql
-    ports:
-      - "5432:5432"
+#    networks:
+#      - video-processing-network
 
-  minio:
-    image: minio/minio:latest
-    container_name: minio
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    volumes:
-      - minio-data:/data
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    command: server /data --console-address ":9001"
+#  video-processing:
+#    container_name: video-processing-microservice
+#    build:
+#      context: .
+#      dockerfile: VideoProcessingMicroservice/Dockerfile
+#    ports:
+#      - "8080:8080"
+#    environment:
+#      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+#      Minio__Endpoint: http://minio:9000
+#      Minio__AccessKey: ${MINIO_ACCESS_KEY}
+#      Minio__SecretKey: ${MINIO_SECRET_KEY}
+#      RabbitMQ__HostName: rabbitmq
+#    depends_on:
+#      rabbitmq:
+#        condition: service_healthy
+#      minio:
+#        condition: service_healthy
+#    networks:
+#      - video-processing-network
 
-  file-processing:
-    build:
-      context: ./FileProcessingMicroservice
-    container_name: file-processing-microservice
-    environment:
-      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
-      Minio__Endpoint: http://minio:9000
-      Minio__AccessKey: ${MINIO_ACCESS_KEY}
-      Minio__SecretKey: ${MINIO_SECRET_KEY}
-    depends_on:
-      minio:
-        condition: service_healthy
-    ports:
-      - "8080:80"
-
-  video-data:
-    build:
-      context: ./VideoDataMicroservice
-    container_name: video-data-microservice
-    environment:
-      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
-      ConnectionStrings__DefaultConnection: >
-        Host=${DB_HOST};
-        Port=${DB_PORT};
-        Database=${POSTGRES_DB};
-        Username=${POSTGRES_USER};
-        Password=${POSTGRES_PASSWORD}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    ports:
-      - "8081:80"
+#  video-metadata:
+#    container_name: video-metadata-microservice
+#    build:
+#      context: .
+#      dockerfile: VideoDataMicroservice/Dockerfile
+#    ports:
+#      - "8081:80"
+#    environment:
+#      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+#      ConnectionStrings__DefaultConnection: >
+#        Host=${DB_HOST};
+#        Port=${DB_PORT};
+#        Database=${POSTGRES_DB};
+#        Username=${POSTGRES_USER};
+#        Password=${POSTGRES_PASSWORD}
+#    depends_on:
+#      metadata-postgres:
+#        condition: service_healthy
+#    networks:
+#      - video-processing-network
         
   rabbitmq:
-    image: rabbitmq:3-management
     container_name: rabbitmq
+    image: rabbitmq:3-management
     ports:
-      - "5672:5672"  # AMQP protocol port
-      - "15672:15672"  # Management UI port
-    volumes:
-      - rabbitmq-data:/var/lib/rabbitmq
+      - "5672:5672"
+      - "15672:15672"
     environment:
       RABBITMQ_DEFAULT_USER: "guest"
       RABBITMQ_DEFAULT_PASS: "guest"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "ping" ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 60s  
     restart: always
+#    networks:
+#      - video-processing-network
+  
+  minio:
+    container_name: video-minio
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio-data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+#    networks:
+#      - video-processing-network
 
 volumes:
   postgres-data:
   minio-data:
   rabbitmq-data:
+
+networks:
+  video-processing-network:
+    driver: bridge
